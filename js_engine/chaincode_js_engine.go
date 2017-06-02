@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+    "gopkg.in/olebedev/go-duktape.v2"
 )
 
 // SimpleChaincode example simple Chaincode implementation
@@ -57,6 +58,13 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.Init(stub, "init", args)
 	} else if function == "write" {
 		return t.write(stub, args)
+	} else if function == "execute" {
+      ctx := duktape.New()
+      ctx.PevalString(args[1])
+      args[1] := ctx.GetString(-1)
+      ctx.Pop()
+      ctx.DestroyHeap()
+      return t.write(stub, args)
 	}
 	fmt.Println("invoke did not find func: " + function)
 
