@@ -61,7 +61,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	} else if function == "execute" {
       ctx := duktape.New()
       ctx.PevalString(args[1])
-      args[1] := ctx.GetString(-1)
+      args[1] = ctx.GetString(-1)
       ctx.Pop()
       ctx.DestroyHeap()
       return t.write(stub, args)
