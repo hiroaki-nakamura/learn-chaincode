@@ -61,7 +61,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	} else if function == "execute" {
       ctx := duktape.New()
       ctx.PevalString(args[1])
-      args[1] = ctx.GetString(-1)
+      args[1] = ctx.SafeToString(-1)
       ctx.Pop()
       ctx.DestroyHeap()
       return t.write(stub, args)
@@ -77,9 +77,6 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 
 	// Handle different functions
 	if function == "read" { //read a variable
-		return t.read(stub, args)
-	}
-	if function == "execute" { //read a variable
 		return t.read(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)
