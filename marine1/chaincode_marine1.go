@@ -19,7 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"bytes"
+	"unsafe"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
@@ -65,8 +65,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
       	if err != nil {
   		  return nil, err
         }
-        n := bytes.IndexByte(oldStateAsBytes, 0)
-        oldState = string(oldStateAsBytes[:n])
+        oldState = *(*string)(unsafe.Pointer(&oldStateAsBytes))
 
         event = args[0]
         newState = transition(oldState, event)
