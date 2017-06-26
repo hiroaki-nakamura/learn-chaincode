@@ -70,6 +70,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 
         event = args[0]
         newState = transition(oldState, event)
+        	fmt.Println("send " + oldState + "->(" + event + ")->" + newState)
         err = stub.PutState("state", []byte(newState))
       	if err != nil {
   		  return nil, err
