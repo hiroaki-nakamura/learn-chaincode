@@ -61,19 +61,25 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
     	var oldState, event, newState string
         var err error
 
+        event = args[0]
+        err = stub.PutState("event", []byte(event))
+      	if err != nil {
+  		  return nil, err
+        }
+
     	oldStateAsBytes, err := stub.GetState("state")
       	if err != nil {
   		  return nil, err
         }
         oldState = *(*string)(unsafe.Pointer(&oldStateAsBytes))
 
-        event = args[0]
         newState = transition(oldState, event)
         	fmt.Println("send " + oldState + "->(" + event + ")->" + newState)
         err = stub.PutState("state", []byte(newState))
       	if err != nil {
   		  return nil, err
         }
+
  	    return nil, nil
     }
 	fmt.Println("invoke did not find func: " + function)
@@ -133,102 +139,103 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 }
 
 func transition(oldState string, event string) string {
-var newState string
-if oldState=="initial" {
-  if event=="Imp_PO_Template_Open" {newState="Imp_PO_Draft"}
+  var newState string
+  if oldState=="initial" {
+    if event=="Imp_PO_Template_Open" {newState="Imp_PO_Draft"}
+  }
+  if oldState=="Imp_PO_Draft" {
+    if event=="Imp_PO_Draft_Submit" {newState="Exp_PO_Draft"}
+    if event=="Imp_PO_Agree" {newState="Exp_PO_Agreed"}
+  }
+  if oldState=="Exp_PO_Draft" {
+    if event=="Exp_PO_EXW_Agree" {newState="Imp_PO_EXWFinalized"}
+    if event=="Exp_PO_CIF_Agree" {newState="Imp_PO_CIFFinalized"}
+    if event=="Exp_PO_CFR_Agree" {newState="Imp_PO_CFRFinalized"}
+    if event=="Exp_PO_FOB_Agree" {newState="Imp_PO_FOBFinalized"}
+    if event=="Exp_PO_DDP_Agree" {newState="Imp_PO_DDPFinalized"}
+    if event=="Exp_PO_Draft_Amend" {newState="Imp_PO_Draft"}
+  }
+  if oldState=="Exp_InsApp_Draft" {
+    if event=="Exp_InsApp_Exp_Submit" {newState="InsCo_InsApp_Draft"}
+  }
+  if oldState=="InsCo_InsApp_Draft" {
+    if event=="InsCo_InsApp_Exp_Approve" {newState="Exp_InsApp_OpenCover"}
+    if event=="InsCo_InsApp_Imp_Approve" {newState="Imp_InsApp_OpenCover"}
+    if event=="InsCo_InsApp_Exp_Deny" {newState="Exp_InsApp_Draft"}
+    if event=="InsCo_InsApp_Imp_Deny" {newState="Imp_InsApp_Draft"}
+  }
+  if oldState=="Exp_InsApp_OpenCover" {
+    if event=="Exp_ShipInfo_Exp_Received" {newState="Exp_ShipInfo_Draft"}
+  }
+  if oldState=="Exp_ShipInfo_Draft" {
+    if event=="Exp_ShipInfo_Draft_Submit" {newState="InsCo_ShipInfo_Received"}
+  }
+  if oldState=="InsCo_ShipInfo_Received" {
+    if event=="InsCo_ShipInfo_Exp_Approve" {newState="Exp_InsApp_Finalized"}
+    if event=="InsCo_ShipInfo_Imp_Approve" {newState="Imp_InsApp_Finalized"}
+    if event=="InsCo_ShipInfo_Imp_Deny" {newState="Imp_ShipInfo_Draft"}
+    if event=="InsCo_ShipInfo_Exp_Deny" {newState="Exp_ShipInfo_Draft"}
+  }
+  if oldState=="Exp_InsApp_Finalized" {
+    if event=="Exp_InsPremFee_Exp_Submit" {newState="InsCo_InsPremFee_Received"}
+  }
+  if oldState=="InsCo_InsPremFee_Received" {
+    if event=="InsCo_InsPremFee_Exp_Approve" {newState="Exp_InsPremFee_Finalized"}
+    if event=="InsCo_InsPremFee_Imp_Approve" {newState="Imp_InsPremFee_Finalized"}
+    if event=="InsCo_InsPremFee_Imp_Deny" {newState="Imp_InsApp_Finalized"}
+    if event=="InsCo_InsPremFee_Exp_Deny" {newState="Exp_InsApp_Finalized"}
+  }
+  if oldState=="Exp_IncidentInfo_Received" {
+    if event=="Exp_ClaimDoc_Template_Open" {newState="Exp_ClaimDoc_Draft"}
+  }
+  if oldState=="Exp_ClaimDoc_Draft" {
+    if event=="Exp_ClaimDoc_Draft_Submit" {newState="InsCo_ClaimDoc_Received"}
+  }
+  if oldState=="Exp_InsPremFee_Finalized" {
+    if event=="Exp_Product_Ship_Request" {newState="Shipper_Product_PlantReady"}
+  }
+  if oldState=="InsCo_ClaimDoc_Received" {
+    if event=="InsCo_ClaimDoc_Surveyor_Send" {newState="Surveyor_Survey_Received"}
+  }
+  if oldState=="Shipper_Product_ExpPortReceived" {
+    if event=="Shipper_Product_ExpPortExp_Incident" {newState="Exp_IncidentInfo_Received"}
+    if event=="Shipper_Product_Sea_Ship" {newState="Shipper_Product_SeaTransport"}
+    if event=="Shipper_Product_ExpPortImp_Incident" {newState="Imp_IncidentInfo_Received"}
+  }
+  if oldState=="Shipper_Product_PlantReady" {
+    if event=="Shipper_Product_Plant_Ship" {newState="Shipper_Product_ExpLandTransport"}
+  }
+  if oldState=="Shipper_Product_ImpPortReceived" {
+    if event=="Shipper_Product_ImpPortExp_Incident" {newState="Exp_IncidentInfo_Received"}
+    if event=="Shipper_Product_ImpLand_Ship" {newState="Shipper_Product_ImpLandTransport"}
+    if event=="Shipper_Product_ImpPortImp_Incident" {newState="Imp_IncidentInfo_Received"}
+  }
+  if oldState=="Importer_Product_Destination" {
+    if event=="Shipper_Product_DestinationExp_Incident" {newState="Exp_IncidentInfo_Received"}
+    if event=="Imp_Product_Desitination_OK" {newState="Imp_Product_DestinationApproved"}
+    if event=="Shipper_Product_DestinationImp_Incident" {newState="Imp_IncidentInfo_Received"}
+  }
+  if oldState=="Surveyor_Survey_Received" {
+    if event=="Surveyor_ClaimDoc_Survery_Deny" {newState="InsCo_Survey_Denied"}
+    if event=="Sureveyor_ClaimDoc_Survey_Approve" {newState="InsCo_Survery_Approved"}
+  }
+  if oldState=="InsCo_Survey_Denied" {
+    if event=="InsCo_ClaimDoc_Exp_Deny" {newState="Exp_ClaimDoc_Denied"}
+    if event=="InsCo_ClaimDoc_Exp_Deny" {newState="Imp_ClaimDoc_Denied"}
+  }
+  if oldState=="InsCo_Survery_Approved" {
+    if event=="InsCo_ClaimDoc_Exp_Approve" {newState="Exp_ClaimDoc_Approved"}
+    if event=="InsCo_ClaimDoc_Imp_Approve" {newState="Imp_ClaimDoc_Approved"}
+  }
+  if oldState=="Exp_ClaimDoc_Approved" {
+    if event=="Exp_Claim_Imp_Inform" {newState="Final_ClaimDoc_Approved"}
+  }
+  if oldState=="Exp_ClaimDoc_Denied" {
+    if event=="Exp_ClaimDoc_Deny_Send" {newState="Final_ClaimDoc_Denied"}
+  }
+  if oldState=="Imp_Product_DestinationApproved" {
+    if event=="Imp_Product_Exp_Approve" {newState="Final_Product_Approved"}
+  }
+  return newState
 }
-if oldState=="Imp_PO_Draft" {
-  if event=="Imp_PO_Draft_Submit" {newState="Exp_PO_Draft"}
-  if event=="Imp_PO_Agree" {newState="Exp_PO_Agreed"}
-}
-if oldState=="Exp_PO_Draft" {
-  if event=="Exp_PO_EXW_Agree" {newState="Imp_PO_EXWFinalized"}
-  if event=="Exp_PO_CIF_Agree" {newState="Imp_PO_CIFFinalized"}
-  if event=="Exp_PO_CFR_Agree" {newState="Imp_PO_CFRFinalized"}
-  if event=="Exp_PO_FOB_Agree" {newState="Imp_PO_FOBFinalized"}
-  if event=="Exp_PO_DDP_Agree" {newState="Imp_PO_DDPFinalized"}
-  if event=="Exp_PO_Draft_Amend" {newState="Imp_PO_Draft"}
-}
-if oldState=="Exp_InsApp_Draft" {
-  if event=="Exp_InsApp_Exp_Submit" {newState="InsCo_InsApp_Draft"}
-}
-if oldState=="InsCo_InsApp_Draft" {
-  if event=="InsCo_InsApp_Exp_Approve" {newState="Exp_InsApp_OpenCover"}
-  if event=="InsCo_InsApp_Imp_Approve" {newState="Imp_InsApp_OpenCover"}
-  if event=="InsCo_InsApp_Exp_Deny" {newState="Exp_InsApp_Draft"}
-  if event=="InsCo_InsApp_Imp_Deny" {newState="Imp_InsApp_Draft"}
-}
-if oldState=="Exp_InsApp_OpenCover" {
-  if event=="Exp_ShipInfo_Exp_Received" {newState="Exp_ShipInfo_Draft"}
-}
-if oldState=="Exp_ShipInfo_Draft" {
-  if event=="Exp_ShipInfo_Draft_Submit" {newState="InsCo_ShipInfo_Received"}
-}
-if oldState=="InsCo_ShipInfo_Received" {
-  if event=="InsCo_ShipInfo_Exp_Approve" {newState="Exp_InsApp_Finalized"}
-  if event=="InsCo_ShipInfo_Imp_Approve" {newState="Imp_InsApp_Finalized"}
-  if event=="InsCo_ShipInfo_Imp_Deny" {newState="Imp_ShipInfo_Draft"}
-  if event=="InsCo_ShipInfo_Exp_Deny" {newState="Exp_ShipInfo_Draft"}
-}
-if oldState=="Exp_InsApp_Finalized" {
-  if event=="Exp_InsPremFee_Exp_Submit" {newState="InsCo_InsPremFee_Received"}
-}
-if oldState=="InsCo_InsPremFee_Received" {
-  if event=="InsCo_InsPremFee_Exp_Approve" {newState="Exp_InsPremFee_Finalized"}
-  if event=="InsCo_InsPremFee_Imp_Approve" {newState="Imp_InsPremFee_Finalized"}
-  if event=="InsCo_InsPremFee_Imp_Deny" {newState="Imp_InsApp_Finalized"}
-  if event=="InsCo_InsPremFee_Exp_Deny" {newState="Exp_InsApp_Finalized"}
-}
-if oldState=="Exp_IncidentInfo_Received" {
-  if event=="Exp_ClaimDoc_Template_Open" {newState="Exp_ClaimDoc_Draft"}
-}
-if oldState=="Exp_ClaimDoc_Draft" {
-  if event=="Exp_ClaimDoc_Draft_Submit" {newState="InsCo_ClaimDoc_Received"}
-}
-if oldState=="Exp_InsPremFee_Finalized" {
-  if event=="Exp_Product_Ship_Request" {newState="Shipper_Product_PlantReady"}
-}
-if oldState=="InsCo_ClaimDoc_Received" {
-  if event=="InsCo_ClaimDoc_Surveyor_Send" {newState="Surveyor_Survey_Received"}
-}
-if oldState=="Shipper_Product_ExpPortReceived" {
-  if event=="Shipper_Product_ExpPortExp_Incident" {newState="Exp_IncidentInfo_Received"}
-  if event=="Shipper_Product_Sea_Ship" {newState="Shipper_Product_SeaTransport"}
-  if event=="Shipper_Product_ExpPortImp_Incident" {newState="Imp_IncidentInfo_Received"}
-}
-if oldState=="Shipper_Product_PlantReady" {
-  if event=="Shipper_Product_Plant_Ship" {newState="Shipper_Product_ExpLandTransport"}
-}
-if oldState=="Shipper_Product_ImpPortReceived" {
-  if event=="Shipper_Product_ImpPortExp_Incident" {newState="Exp_IncidentInfo_Received"}
-  if event=="Shipper_Product_ImpLand_Ship" {newState="Shipper_Product_ImpLandTransport"}
-  if event=="Shipper_Product_ImpPortImp_Incident" {newState="Imp_IncidentInfo_Received"}
-}
-if oldState=="Importer_Product_Destination" {
-  if event=="Shipper_Product_DestinationExp_Incident" {newState="Exp_IncidentInfo_Received"}
-  if event=="Imp_Product_Desitination_OK" {newState="Imp_Product_DestinationApproved"}
-  if event=="Shipper_Product_DestinationImp_Incident" {newState="Imp_IncidentInfo_Received"}
-}
-if oldState=="Surveyor_Survey_Received" {
-  if event=="Surveyor_ClaimDoc_Survery_Deny" {newState="InsCo_Survey_Denied"}
-  if event=="Sureveyor_ClaimDoc_Survey_Approve" {newState="InsCo_Survery_Approved"}
-}
-if oldState=="InsCo_Survey_Denied" {
-  if event=="InsCo_ClaimDoc_Exp_Deny" {newState="Exp_ClaimDoc_Denied"}
-  if event=="InsCo_ClaimDoc_Exp_Deny" {newState="Imp_ClaimDoc_Denied"}
-}
-if oldState=="InsCo_Survery_Approved" {
-  if event=="InsCo_ClaimDoc_Exp_Approve" {newState="Exp_ClaimDoc_Approved"}
-  if event=="InsCo_ClaimDoc_Imp_Approve" {newState="Imp_ClaimDoc_Approved"}
-}
-if oldState=="Exp_ClaimDoc_Approved" {
-  if event=="Exp_Claim_Imp_Inform" {newState="Final_ClaimDoc_Approved"}
-}
-if oldState=="Exp_ClaimDoc_Denied" {
-  if event=="Exp_ClaimDoc_Deny_Send" {newState="Final_ClaimDoc_Denied"}
-}
-if oldState=="Imp_Product_DestinationApproved" {
-  if event=="Imp_Product_Exp_Approve" {newState="Final_Product_Approved"}
-}
-return newState
-}
+  
